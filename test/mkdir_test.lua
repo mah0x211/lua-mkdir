@@ -1,4 +1,3 @@
-local unpack = unpack or table.unpack
 local testcase = require('testcase')
 local errno = require('error').errno
 local mkdir = require('mkdir')
@@ -22,23 +21,21 @@ end
 
 function testcase.mkdir()
     -- test that make a directory in the symbolic link directory
-    local ok, err, eno = mkdir('./testdir/symdir/foo')
+    local ok, err, eno = mkdir('./testdir/foo')
     assert(ok, err)
     assert.is_nil(eno)
-    local stat = assert(fstat('./testdir/symdir/foo'))
+    local stat = assert(fstat('./testdir/foo'))
+    assert.equal(stat.type, 'directory')
     assert.equal(stat.perm, '0755')
 
-    -- test that make a directory and parent directories as needed
-    ok, err, eno = mkdir('./testdir/foo/bar', nil, true)
-    assert(ok, err)
-    assert.is_nil(eno)
-
-    -- test that make a directory with specified mode
-    ok, err, eno = mkdir('./testdir/foo/bar/baz', '0777')
-    assert(ok, err)
-    assert.is_nil(eno)
-    stat = assert(fstat('./testdir/foo/bar/baz'))
-    assert.equal(stat.perm, '0755')
+    -- test that returns an error if non directory path segment already exist
+    local f = assert(io.open('./testdir/foo/bar', 'w'))
+    f:write('hello')
+    f:close()
+    ok, err, eno = mkdir('./testdir/foo/bar')
+    assert.is_false(ok)
+    assert.is_string(err)
+    assert.equal(errno[eno], errno.EEXIST)
 
     -- test that return an error if pathname too long
     ok, err, eno = mkdir('./testdir/' .. string.rep('a', 1000 * 1000))
@@ -58,59 +55,67 @@ function testcase.mkdir()
     assert.is_string(err)
     assert.equal(errno[eno], errno.EINVAL)
 
-    -- test that returns an error if non directory path segment already exist
-    local f = assert(io.open('./testdir/foo/bar/baz/qux', 'w'))
-    f:write('hello')
-    f:close()
-    ok, err, eno = mkdir('./testdir/foo/bar/baz/qux')
+    -- test that throws an error
+    err = assert.throws(mkdir, {})
+    assert.match(err, '#1 .+ [(]string expected, ', false)
+end
+
+function testcase.mkdir_with_mode()
+    -- test that make a directory with specified mode
+    local ok, err, eno = mkdir('./testdir/foo', '0777')
+    assert(ok, err)
+    assert.is_nil(eno)
+    local stat = assert(fstat('./testdir/foo'))
+    assert.equal(stat.type, 'directory')
+    assert.equal(stat.perm, '0755')
+
+    -- test that throws an error
+    err = assert.throws(mkdir, './testdir/foo/bar', '0134777')
+    assert.match(err, '#2 .+', false)
+
+    err = assert.throws(mkdir, './testdir/foo/bar', 3071)
+    assert.match(err, '#2 .+', false)
+
+    err = assert.throws(mkdir, './testdir/foo/bar', {})
+    assert.match(err, '#2 .+ [(]number expected, ', false)
+end
+
+function testcase.mkdir_with_parent()
+    -- test that make a directory and parent directories as needed
+    local ok, err, eno = mkdir('./testdir/foo/bar', nil, true)
+    assert(ok, err)
+    assert.is_nil(eno)
+    local stat = assert(fstat('./testdir/foo/bar'))
+    assert.equal(stat.type, 'directory')
+    assert.equal(stat.perm, '0755')
+
+    -- test that returns an error if parent is not true
+    ok, err, eno = mkdir('./testdir/baz/qux')
     assert.is_false(ok)
     assert.is_string(err)
-    assert.equal(errno[eno], errno.EEXIST)
+    assert.equal(errno[eno], errno.ENOENT)
 
-    -- test that returns an error if set follow_symlink to true
+    -- test that throws an error
+    err = assert.throws(mkdir, './testdir/hello/world', nil, {})
+    assert.match(err, '#3 .+ [(]boolean expected, ', false)
+end
+
+function testcase.mkdir_with_follow_symlink()
+    -- test that make a directory in the symbolic link directory
+    local ok, err, eno = mkdir('./testdir/symdir/foo')
+    assert(ok, err)
+    assert.is_nil(eno)
+    local stat = assert(fstat('./testdir/symdir/foo'))
+    assert.equal(stat.perm, '0755')
+
+    -- test that returns an error if set follow_symlink to false
     ok, err, eno = mkdir('./testdir/symdir/bar', nil, nil, false)
     assert.is_false(ok)
     assert.is_string(err)
     assert.equal(errno[eno], errno.EEXIST)
 
     -- test that throws an error
-    for _, v in ipairs({
-        {
-            args = {},
-            match_err = '#1 .+ [(]string expected, ',
-        },
-        {
-            args = {
-                './testdir',
-                '0134777',
-            },
-            match_err = '#2 .+',
-        },
-        {
-            args = {
-                './testdir',
-                3071,
-            },
-            match_err = '#2 .+',
-        },
-        {
-            args = {
-                './testdir',
-                {},
-            },
-            match_err = '#2 .+ [(]number expected, ',
-        },
-        {
-            args = {
-                './testdir',
-                nil,
-                1,
-            },
-            match_err = '#3 .+ [(]boolean expected, ',
-        },
-    }) do
-        err = assert.throws(mkdir, unpack(v.args))
-        assert.match(err, v.match_err, false)
-    end
+    err = assert.throws(mkdir, './testdir/foo', nil, nil, {})
+    assert.match(err, '#4 .+ [(]boolean expected, ', false)
 end
 

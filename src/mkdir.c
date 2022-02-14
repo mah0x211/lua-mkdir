@@ -255,7 +255,7 @@ static int mkdir_lua(lua_State *L)
             break;
 
         case 0: // not found
-            if (idx != top && !follow_symlink) {
+            if (idx != top && !parents) {
                 // parent directory creation is not enabled
                 errno = ENOENT;
             } else if (mkdir(path, mode) == 0) {
