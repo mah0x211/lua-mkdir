@@ -147,29 +147,38 @@ ADD_SEGMENT:
     return 0;
 }
 
-static inline int makedir(const char *path, mode_t mode)
+static inline int isdir(const char *path, int follow_symlink)
 {
     struct stat buf = {0};
+    int rv          = 0;
 
-    if (stat(path, &buf) == 0) {
-        if (S_ISDIR(buf.st_mode)) {
-            return 0;
-        }
-        errno = EEXIST;
-    } else if (errno != ENOENT) {
-        return -1;
+    if (follow_symlink) {
+        rv = stat(path, &buf);
+    } else {
+        rv = lstat(path, &buf);
     }
 
-    return mkdir(path, mode);
+    if (rv) {
+        // -1 := error
+        // 0 := not exist
+        return -(errno != ENOENT);
+    } else if (S_ISDIR(buf.st_mode)) {
+        // directory exists
+        return 1;
+    }
+    // file exist
+    errno = EEXIST;
+    return -1;
 }
 
 static int mkdir_lua(lua_State *L)
 {
-    size_t len  = 0;
-    char *path  = (char *)lauxh_checklstring(L, 1, &len);
-    mode_t mode = 0777;
-    int parents = 0;
-    int top     = 0;
+    size_t len         = 0;
+    char *path         = (char *)lauxh_checklstring(L, 1, &len);
+    mode_t mode        = 0777;
+    int parents        = 0;
+    int follow_symlink = 1;
+    int top            = 0;
 
     errno = 0;
     // check path length
@@ -203,7 +212,8 @@ static int mkdir_lua(lua_State *L)
         return lauxh_argerror(L, 2, "%s", strerror(errno));
     }
 
-    parents = lauxh_optboolean(L, 3, parents);
+    parents        = lauxh_optboolean(L, 3, parents);
+    follow_symlink = lauxh_optboolean(L, 4, follow_symlink);
 
     // copy to buffer
     path      = memcpy(MKDIR_BUF, path, len);
@@ -218,22 +228,6 @@ static int mkdir_lua(lua_State *L)
     }
 
     top = lua_gettop(L);
-    // make a directory of the last path segment
-    if (!parents) {
-        lua_concat(L, top);
-        path  = (char *)lua_tolstring(L, 1, &len);
-        errno = 0;
-        if (makedir(path, mode) != 0) {
-            lua_pushboolean(L, 0);
-            lua_pushstring(L, strerror(errno));
-            lua_pushinteger(L, errno);
-            return 3;
-        }
-        lua_pushboolean(L, 1);
-        return 1;
-    }
-
-    // make parent directories as needed
     len = 0;
     for (int idx = 1; idx <= top; idx++) {
         size_t slen     = 0;
@@ -256,7 +250,22 @@ static int mkdir_lua(lua_State *L)
             }
         }
 
-        if (makedir(path, 0777) != 0) {
+        switch (isdir(path, follow_symlink)) {
+        case 1: // found directory
+            break;
+
+        case 0: // not found
+            if (idx != top && !follow_symlink) {
+                // parent directory creation is not enabled
+                errno = ENOENT;
+            } else if (mkdir(path, mode) == 0) {
+                // directory has been created
+                continue;
+            }
+
+        default:
+            // got error
+            lua_settop(L, 0);
             lua_pushboolean(L, 0);
             lua_pushstring(L, strerror(errno));
             lua_pushinteger(L, errno);
@@ -264,6 +273,8 @@ static int mkdir_lua(lua_State *L)
         }
     }
 
+    lua_settop(L, 0);
+    lua_pushboolean(L, 1);
     return 1;
 }
 
