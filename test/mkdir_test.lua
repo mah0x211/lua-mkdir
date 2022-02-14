@@ -4,27 +4,28 @@ local errno = require('error').errno
 local mkdir = require('mkdir')
 local fstat = require('fstat')
 
-local DIRS = {
-    'testdir',
-    'foo',
-    'bar',
-    'baz',
-    'qux',
-}
-
-function testcase.after_all()
-    for i = #DIRS, 1, -1 do
+function testcase.after_each()
+    local DIRS = {
+        'testdir',
+        'foo',
+        'bar',
+        'baz',
+        'qux',
+    }
+    for i = #DIRS, 2, -1 do
         local dirname = table.concat(DIRS, '/', 1, i)
         os.remove(dirname)
     end
+
+    os.remove('testdir/symdir/foo')
 end
 
 function testcase.mkdir()
-    -- test that make a directory
-    local ok, err, eno = mkdir('./testdir')
+    -- test that make a directory in the symbolic link directory
+    local ok, err, eno = mkdir('./testdir/symdir/foo')
     assert(ok, err)
     assert.is_nil(eno)
-    local stat = assert(fstat('./testdir'))
+    local stat = assert(fstat('./testdir/symdir/foo'))
     assert.equal(stat.perm, '0755')
 
     -- test that make a directory and parent directories as needed
@@ -62,6 +63,12 @@ function testcase.mkdir()
     f:write('hello')
     f:close()
     ok, err, eno = mkdir('./testdir/foo/bar/baz/qux')
+    assert.is_false(ok)
+    assert.is_string(err)
+    assert.equal(errno[eno], errno.EEXIST)
+
+    -- test that returns an error if set follow_symlink to true
+    ok, err, eno = mkdir('./testdir/symdir/bar', nil, nil, false)
     assert.is_false(ok)
     assert.is_string(err)
     assert.equal(errno[eno], errno.EEXIST)
