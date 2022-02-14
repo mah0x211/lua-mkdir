@@ -82,6 +82,13 @@ function testcase.mkdir()
         {
             args = {
                 './testdir',
+                3071,
+            },
+            match_err = '#2 .+',
+        },
+        {
+            args = {
+                './testdir',
                 {},
             },
             match_err = '#2 .+ [(]number expected, ',

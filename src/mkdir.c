@@ -171,28 +171,8 @@ static int mkdir_lua(lua_State *L)
     int parents = 0;
     int top     = 0;
 
-    // conver mode string to integer
     errno = 0;
-    if (lua_type(L, 2) == LUA_TSTRING) {
-        char *endptr     = NULL;
-        const char *nptr = lua_tostring(L, 2);
-        uintmax_t n      = strtoumax(nptr, &endptr, 8);
-        if (errno != 0) {
-            return lauxh_argerror(L, 2, "%s", strerror(errno));
-        } else if (*endptr) {
-            errno = EINVAL;
-            return lauxh_argerror(L, 2, "%s", strerror(errno));
-        } else if (n & ~0777) {
-            errno = ERANGE;
-            return lauxh_argerror(L, 2, "%s", strerror(errno));
-        }
-        mode = n;
-    } else {
-        mode = lauxh_optuint16(L, 2, mode);
-    }
-
-    parents = lauxh_optboolean(L, 3, parents);
-    // check path argument
+    // check path length
     if (len > MKDIR_BUFSIZ) {
         // got error
         errno = ENAMETOOLONG;
@@ -201,6 +181,30 @@ static int mkdir_lua(lua_State *L)
         lua_pushinteger(L, errno);
         return 3;
     }
+
+    // check mode value
+    if (lua_type(L, 2) == LUA_TSTRING) {
+        // conver mode string to integer
+        char *endptr     = NULL;
+        const char *nptr = lua_tostring(L, 2);
+        uintmax_t n      = strtoumax(nptr, &endptr, 8);
+        if (errno != 0) {
+            return lauxh_argerror(L, 2, "%s", strerror(errno));
+        } else if (*endptr) {
+            errno = EINVAL;
+            return lauxh_argerror(L, 2, "%s", strerror(errno));
+        }
+        mode = n;
+    } else {
+        mode = lauxh_optuint16(L, 2, mode);
+    }
+    if (mode & ~0777) {
+        errno = ERANGE;
+        return lauxh_argerror(L, 2, "%s", strerror(errno));
+    }
+
+    parents = lauxh_optboolean(L, 3, parents);
+
     // copy to buffer
     path      = memcpy(MKDIR_BUF, path, len);
     path[len] = 0;
