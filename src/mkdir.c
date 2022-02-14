@@ -256,7 +256,7 @@ static int mkdir_lua(lua_State *L)
             }
         }
 
-        if (makedir(path, 0777) != 0) {
+        if (makedir(path, mode) != 0) {
             lua_pushboolean(L, 0);
             lua_pushstring(L, strerror(errno));
             lua_pushinteger(L, errno);
