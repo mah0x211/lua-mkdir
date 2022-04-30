@@ -1,5 +1,5 @@
 local testcase = require('testcase')
-local errno = require('error').errno
+local errno = require('errno')
 local mkdir = require('mkdir')
 local fstat = require('fstat')
 
@@ -77,7 +77,7 @@ function testcase.mkdir_with_mode()
     assert.match(err, '#2 .+', false)
 
     err = assert.throws(mkdir, './testdir/foo/bar', {})
-    assert.match(err, '#2 .+ [(]number expected, ', false)
+    assert.match(err, '#2 .+ [(]integer expected, ', false)
 end
 
 function testcase.mkdir_with_parent()
