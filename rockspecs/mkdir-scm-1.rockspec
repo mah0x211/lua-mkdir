@@ -1,21 +1,21 @@
-rockspec_format = '3.0'
-package = 'mkdir'
-version = 'scm-1'
+package = "mkdir"
+version = "scm-1"
 source = {
-    url = 'git+https://github.com/mah0x211/lua-mkdir.git',
+    url = "git+https://github.com/mah0x211/lua-mkdir.git",
 }
 description = {
-    summary = 'make directories.',
-    homepage = 'https://github.com/mah0x211/lua-mkdir',
-    license = 'MIT/X11',
-    maintainer = 'Masatoshi Fukunaga'
+    summary = "make directories.",
+    homepage = "https://github.com/mah0x211/lua-mkdir",
+    license = "MIT/X11",
+    maintainer = "Masatoshi Fukunaga",
 }
 dependencies = {
-    'lua >= 5.1',
-    'lauxhlib >= 0.1.0',
+    "lua >= 5.1",
+    "errno >= 0.3.0",
+    "lauxhlib >= 0.1.0",
 }
 build = {
-    type = 'make',
+    type = "make",
     build_variables = {
         LIB_EXTENSION   = "$(LIB_EXTENSION)",
         CFLAGS          = "$(CFLAGS)",

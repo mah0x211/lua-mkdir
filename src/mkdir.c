@@ -23,11 +23,13 @@
 #include <dirent.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <lauxhlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+// lua
+#include <lauxhlib.h>
+#include <lua_errno.h>
 
 static size_t MKDIR_BUFSIZ = PATH_MAX;
 static char *MKDIR_BUF     = NULL;
@@ -186,9 +188,8 @@ static int mkdir_lua(lua_State *L)
         // got error
         errno = ENAMETOOLONG;
         lua_pushboolean(L, 0);
-        lua_pushfstring(L, "%s: %s", path, strerror(errno));
-        lua_pushinteger(L, errno);
-        return 3;
+        lua_errno_new(L, errno, "mkdir");
+        return 2;
     }
 
     // check mode value
@@ -222,9 +223,8 @@ static int mkdir_lua(lua_State *L)
     if (normalize(L, path, len) != 0) {
         lua_settop(L, 0);
         lua_pushboolean(L, 0);
-        lua_pushstring(L, strerror(errno));
-        lua_pushinteger(L, errno);
-        return 3;
+        lua_errno_new(L, errno, "mkdir");
+        return 2;
     }
 
     top = lua_gettop(L);
@@ -267,9 +267,8 @@ static int mkdir_lua(lua_State *L)
             // got error
             lua_settop(L, 0);
             lua_pushboolean(L, 0);
-            lua_pushstring(L, strerror(errno));
-            lua_pushinteger(L, errno);
-            return 3;
+            lua_errno_new(L, errno, "mkdir");
+            return 2;
         }
     }
 
@@ -281,6 +280,8 @@ static int mkdir_lua(lua_State *L)
 LUALIB_API int luaopen_mkdir(lua_State *L)
 {
     long pathmax = pathconf(".", _PC_PATH_MAX);
+
+    lua_errno_loadlib(L);
 
     // set the maximum number of bytes in a pathname
     if (pathmax != -1) {
