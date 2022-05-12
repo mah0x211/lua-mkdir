@@ -19,8 +19,12 @@ local mkdir = require('mkdir')
 assert(mkdir('./hello/world/dir', '0777', true))
 ```
 
+## Error Handling
 
-## ok, err, errno = mkdir( pathname [, mode [, parents [, follow_symlink]]] )
+the following functions return the `error` object created by https://github.com/mah0x211/lua-errno module.
+
+
+## ok, err = mkdir( pathname [, mode [, parents [, follow_symlink]]] )
 
 make directories.
 
@@ -34,5 +38,4 @@ make directories.
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:string`: error message.
-- `errno:integer`: error number.
+- `err:error`: error object.

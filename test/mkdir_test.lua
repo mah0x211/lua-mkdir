@@ -21,9 +21,8 @@ end
 
 function testcase.mkdir()
     -- test that make a directory in the symbolic link directory
-    local ok, err, eno = mkdir('./testdir/foo')
+    local ok, err = mkdir('./testdir/foo')
     assert(ok, err)
-    assert.is_nil(eno)
     local stat = assert(fstat('./testdir/foo'))
     assert.equal(stat.type, 'directory')
     assert.equal(stat.perm, '0755')
@@ -32,28 +31,24 @@ function testcase.mkdir()
     local f = assert(io.open('./testdir/foo/bar', 'w'))
     f:write('hello')
     f:close()
-    ok, err, eno = mkdir('./testdir/foo/bar')
+    ok, err = mkdir('./testdir/foo/bar')
     assert.is_false(ok)
-    assert.is_string(err)
-    assert.equal(errno[eno], errno.EEXIST)
+    assert.equal(err.type, errno.EEXIST)
 
     -- test that return an error if pathname too long
-    ok, err, eno = mkdir('./testdir/' .. string.rep('a', 1000 * 1000))
+    ok, err = mkdir('./testdir/' .. string.rep('a', 1000 * 1000))
     assert.is_false(ok)
-    assert.is_string(err)
-    assert.equal(errno[eno], errno.ENAMETOOLONG)
+    assert.equal(err.type, errno.ENAMETOOLONG)
 
     -- test that return an error if pathname contains an illegal byte sequence
-    ok, err, eno = mkdir('./testdir/' .. string.char(0) .. 'hello')
+    ok, err = mkdir('./testdir/' .. string.char(0) .. 'hello')
     assert.is_false(ok)
-    assert.is_string(err)
-    assert.equal(errno[eno], errno.EILSEQ)
+    assert.equal(err.type, errno.EILSEQ)
 
     -- test that returns an error if last path segment is invalid
-    ok, err, eno = mkdir('./testdir/..')
+    ok, err = mkdir('./testdir/..')
     assert.is_false(ok)
-    assert.is_string(err)
-    assert.equal(errno[eno], errno.EINVAL)
+    assert.equal(err.type, errno.EINVAL)
 
     -- test that throws an error
     err = assert.throws(mkdir, {})
@@ -62,9 +57,8 @@ end
 
 function testcase.mkdir_with_mode()
     -- test that make a directory with specified mode
-    local ok, err, eno = mkdir('./testdir/foo', '0777')
+    local ok, err = mkdir('./testdir/foo', '0777')
     assert(ok, err)
-    assert.is_nil(eno)
     local stat = assert(fstat('./testdir/foo'))
     assert.equal(stat.type, 'directory')
     assert.equal(stat.perm, '0755')
@@ -82,18 +76,16 @@ end
 
 function testcase.mkdir_with_parent()
     -- test that make a directory and parent directories as needed
-    local ok, err, eno = mkdir('./testdir/foo/bar', nil, true)
+    local ok, err = mkdir('./testdir/foo/bar', nil, true)
     assert(ok, err)
-    assert.is_nil(eno)
     local stat = assert(fstat('./testdir/foo/bar'))
     assert.equal(stat.type, 'directory')
     assert.equal(stat.perm, '0755')
 
     -- test that returns an error if parent is not true
-    ok, err, eno = mkdir('./testdir/baz/qux')
+    ok, err = mkdir('./testdir/baz/qux')
     assert.is_false(ok)
-    assert.is_string(err)
-    assert.equal(errno[eno], errno.ENOENT)
+    assert.equal(err.type, errno.ENOENT)
 
     -- test that throws an error
     err = assert.throws(mkdir, './testdir/hello/world', nil, {})
@@ -102,17 +94,15 @@ end
 
 function testcase.mkdir_with_follow_symlink()
     -- test that make a directory in the symbolic link directory
-    local ok, err, eno = mkdir('./testdir/symdir/foo')
+    local ok, err = mkdir('./testdir/symdir/foo')
     assert(ok, err)
-    assert.is_nil(eno)
     local stat = assert(fstat('./testdir/symdir/foo'))
     assert.equal(stat.perm, '0755')
 
     -- test that returns an error if set follow_symlink to false
-    ok, err, eno = mkdir('./testdir/symdir/bar', nil, nil, false)
+    ok, err = mkdir('./testdir/symdir/bar', nil, nil, false)
     assert.is_false(ok)
-    assert.is_string(err)
-    assert.equal(errno[eno], errno.EEXIST)
+    assert.equal(err.type, errno.EEXIST)
 
     -- test that throws an error
     err = assert.throws(mkdir, './testdir/foo', nil, nil, {})
