@@ -12,8 +12,6 @@ jobs:
     -
       name: Setup Lua
       uses: mah0x211/setup-lua@v1
-      with:
-        lua-version: "latest"
     -
       name: Install Tools
       run: luarocks install luacheck
@@ -26,11 +24,11 @@ jobs:
     strategy:
       matrix:
         lua-version:
-          - "5.1."
-          - "5.2."
-          - "5.3."
-          - "5.4."
-          - "lj-v2.1"
+          - "5.1.:latest"
+          - "5.2.:latest"
+          - "5.3.:latest"
+          - "5.4.:latest"
+          - "lj-v2.1:latest"
     steps:
     -
       name: Checkout
@@ -41,7 +39,7 @@ jobs:
       name: Setup Lua ${{ matrix.lua-version }}
       uses: mah0x211/setup-lua@v1
       with:
-        lua-version: ${{ matrix.lua-version }}
+        versions: ${{ matrix.lua-version }}
     -
       name: Install
       run: |
