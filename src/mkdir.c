@@ -20,7 +20,12 @@
  *  DEALINGS IN THE SOFTWARE.
  */
 
-#include <dirent.h>
+// depend
+#include "lauxhlib.h"
+#include "lua_errno.h"
+// lua
+#include <lauxlib.h>
+// system
 #include <errno.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -28,9 +33,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-// lua
-#include <lauxhlib.h>
-#include <lua_errno.h>
 
 static size_t MKDIR_BUFSIZ = PATH_MAX;
 static char *MKDIR_BUF     = NULL;
