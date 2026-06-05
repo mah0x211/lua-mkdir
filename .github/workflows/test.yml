@@ -5,13 +5,12 @@ on: [push]
 jobs:
   luacheck:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/mah0x211/lua-ci:latest
     steps:
     -
       name: Checkout
       uses: actions/checkout@v2
-    -
-      name: Setup Lua
-      uses: mah0x211/setup-lua@v1
     -
       name: Install Tools
       run: luarocks install luacheck
@@ -20,7 +19,12 @@ jobs:
       run: |
         luacheck .
   test:
+    needs: luacheck
+    permissions:
+      id-token: write
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/mah0x211/lua-ci:latest
     strategy:
       matrix:
         lua-version:
@@ -31,23 +35,20 @@ jobs:
           - "lj-v2.1:latest"
     steps:
     -
+      name: Switch Lua Version
+      run: |
+        lenv -g use ${{ matrix.lua-version }}
+        lua -v || true
+    -
       name: Checkout
       uses: actions/checkout@v2
-      with:
-        submodules: 'true'
-    -
-      name: Setup Lua ${{ matrix.lua-version }}
-      uses: mah0x211/setup-lua@v1
-      with:
-        versions: ${{ matrix.lua-version }}
     -
       name: Install
       run: |
-        luarocks make MKDIR_COVERAGE=1
+        MKDIR_COVERAGE=1 luarocks make
     -
       name: Install Tools
       run: |
-        sudo apt install lcov -y
         luarocks install testcase
         luarocks install fstat
     -
@@ -60,7 +61,9 @@ jobs:
         sh ./covgen.sh
     -
       name: Upload c coverage to Codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v5
       with:
+        use_oidc: true
+        disable_search: true
         files: ./coverage/lcov.info
         flags: unittests
